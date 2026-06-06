@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soccer Web Spiel – Elfmeterschießen</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(160deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    padding: 16px;
+  }
+  h1 { font-size: 1.8rem; margin-bottom: 4px; text-shadow: 0 2px 6px rgba(0,0,0,.4); }
+  .sub { opacity: .8; margin-bottom: 14px; font-size: .95rem; }
+  .scoreboard {
+    display: flex; gap: 28px; margin-bottom: 12px;
+    font-size: 1.1rem; font-weight: 600;
+    background: rgba(0,0,0,.25); padding: 8px 22px; border-radius: 999px;
+  }
+  .scoreboard span { color: #ffe16b; }
+  canvas {
+    background: #2e8b2e;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    cursor: crosshair;
+    max-width: 100%;
+    touch-action: none;
+  }
+  .hint { margin-top: 12px; font-size: .9rem; opacity: .85; text-align: center; min-height: 1.2em; }
+  button {
+    margin-top: 12px; padding: 10px 24px; font-size: 1rem; font-weight: 600;
+    border: none; border-radius: 999px; cursor: pointer;
+    background: #ffe16b; color: #1e3c72; transition: transform .1s;
+  }
+  button:hover { transform: scale(1.05); }
+</style>
+</head>
+<body>
+  <h1>⚽ Soccer Web Spiel</h1>
+  <div class="sub">Elfmeterschießen – triff ins Tor, am Torwart vorbei!</div>
+
+  <div class="scoreboard">
+    <div>Tore: <span id="goals">0</span></div>
+    <div>Schüsse: <span id="shots">0</span></div>
+    <div>Beste Serie: <span id="streak">0</span></div>
+  </div>
+
+  <canvas id="game" width="700" height="500"></canvas>
+
+  <div class="hint" id="hint">Bewege die Maus zum Zielen und <b>klicke</b> zum Schießen!</div>
+  <button id="resetBtn">Neu starten</button>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// Spielzustand
+let state = 'aiming';      // 'aiming' | 'shooting' | 'result'
+let goals = 0, shots = 0, streak = 0, bestStreak = 0;
+let aim = { x: W/2, y: 140 };       // Zielpunkt (folgt der Maus)
+let ball = { x: W/2, y: H - 70, r: 14, vx: 0, vy: 0 };
+let resultText = '', resultColor = '#fff', resultTimer = 0;
+
+// Tor-Geometrie
+const goal = { x: W/2 - 200, y: 90, w: 400, h: 150 };
+
+// Torwart
+let keeper = { x: W/2, y: goal.y + goal.h - 50, w: 60, h: 80, targetX: W/2, diving: false };
+
+const $ = id => document.getElementById(id);
+function updateUI() {
+  $('goals').textContent = goals;
+  $('shots').textContent = shots;
+  $('streak').textContent = bestStreak;
+}
+
+// ---- Eingabe ----
+function pointerPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width, scaleY = H / rect.height;
+  const p = e.touches ? e.touches[0] : e;
+  return { x: (p.clientX - rect.left) * scaleX, y: (p.clientY - rect.top) * scaleY };
+}
+function onMove(e) {
+  if (state !== 'aiming') return;
+  const p = pointerPos(e);
+  // Ziel auf den Torbereich begrenzen (etwas größer für Pfosten-Spannung)
+  aim.x = Math.max(goal.x - 30, Math.min(goal.x + goal.w + 30, p.x));
+  aim.y = Math.max(goal.y - 20, Math.min(goal.y + goal.h, p.y));
+}
+function shoot() {
+  if (state !== 'aiming') return;
+  state = 'shooting';
+  // Torwart entscheidet sich zufällig für eine Ecke
+  const zones = [goal.x + 60, goal.x + goal.w/2, goal.x + goal.w - 60];
+  keeper.targetX = zones[Math.floor(Math.random() * zones.length)] + (Math.random()*60 - 30);
+  keeper.diving = true;
+  // Ballgeschwindigkeit Richtung Ziel
+  const dx = aim.x - ball.x, dy = aim.y - ball.y;
+  const dist = Math.hypot(dx, dy);
+  const speed = 14;
+  ball.vx = dx / dist * speed;
+  ball.vy = dy / dist * speed;
+}
+canvas.addEventListener('mousemove', onMove);
+canvas.addEventListener('touchmove', e => { onMove(e); e.preventDefault(); }, {passive:false});
+canvas.addEventListener('click', shoot);
+canvas.addEventListener('touchstart', e => { onMove(e); shoot(); e.preventDefault(); }, {passive:false});
+
+$('resetBtn').addEventListener('click', () => {
+  goals = 0; shots = 0; streak = 0; bestStreak = 0;
+  resetShot(); updateUI();
+});
+
+function resetShot() {
+  state = 'aiming';
+  ball.x = W/2; ball.y = H - 70; ball.vx = 0; ball.vy = 0;
+  keeper.x = W/2; keeper.targetX = W/2; keeper.diving = false;
+  $('hint').innerHTML = 'Bewege die Maus zum Zielen und <b>klicke</b> zum Schießen!';
+}
+
+function endResult(scored, text, color) {
+  state = 'result';
+  resultText = text; resultColor = color; resultTimer = 90;
+  shots++;
+  if (scored) {
+    goals++; streak++; bestStreak = Math.max(bestStreak, streak);
+  } else {
+    streak = 0;
+  }
+  updateUI();
+  setTimeout(resetShot, 1500);
+}
+
+// ---- Spiellogik ----
+function update() {
+  if (state === 'shooting') {
+    ball.x += ball.vx; ball.y += ball.vy;
+    // Torwart bewegt sich zur gewählten Ecke
+    keeper.x += (keeper.targetX - keeper.x) * 0.18;
+
+    // Hat der Ball die Torlinie erreicht?
+    if (ball.y <= goal.y + goal.h - 10) {
+      const inGoalX = ball.x > goal.x + 10 && ball.x < goal.x + goal.w - 10;
+      const inGoalY = ball.y > goal.y && ball.y < goal.y + goal.h;
+      const keeperSave = Math.abs(ball.x - keeper.x) < keeper.w/2 + ball.r;
+
+      if (!inGoalX || ball.y < goal.y) {
+        endResult(false, 'DANEBEN! 😅', '#ff7b7b');
+      } else if (keeperSave && inGoalY) {
+        endResult(false, 'GEHALTEN! 🧤', '#ffd36b');
+      } else if (inGoalX && inGoalY) {
+        endResult(true, 'TOOOR! ⚽🥅', '#7bff8e');
+      }
+    }
+    if (ball.y < -40) resetShot(); // Sicherheitsnetz
+  }
+  if (resultTimer > 0) resultTimer--;
+}
+
+// ---- Zeichnen ----
+function drawField() {
+  // Rasenstreifen
+  for (let i = 0; i < 10; i++) {
+    ctx.fillStyle = i % 2 === 0 ? '#2e8b2e' : '#329832';
+    ctx.fillRect(0, i * (H/10), W, H/10);
+  }
+  // Strafraumlinie
+  ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(W/2, H - 70, 80, Math.PI, 2*Math.PI); ctx.stroke();
+}
+function drawGoal() {
+  // Netz
+  ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 1;
+  for (let x = goal.x; x <= goal.x + goal.w; x += 18) {
+    ctx.beginPath(); ctx.moveTo(x, goal.y); ctx.lineTo(x, goal.y + goal.h); ctx.stroke();
+  }
+  for (let y = goal.y; y <= goal.y + goal.h; y += 18) {
+    ctx.beginPath(); ctx.moveTo(goal.x, y); ctx.lineTo(goal.x + goal.w, y); ctx.stroke();
+  }
+  // Pfosten + Latte
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 8; ctx.lineJoin = 'round';
+  ctx.strokeRect(goal.x, goal.y, goal.w, goal.h);
+}
+function drawKeeper() {
+  const k = keeper;
+  ctx.save();
+  ctx.translate(k.x, k.y);
+  if (k.diving) {
+    const dir = Math.sign(k.targetX - W/2) || 1;
+    ctx.rotate(dir * 0.35);
+  }
+  // Körper
+  ctx.fillStyle = '#e63946';
+  ctx.fillRect(-k.w/2, -k.h/2, k.w, k.h);
+  // Kopf
+  ctx.fillStyle = '#ffcc99';
+  ctx.beginPath(); ctx.arc(0, -k.h/2 - 12, 14, 0, 2*Math.PI); ctx.fill();
+  // Arme
+  ctx.strokeStyle = '#e63946'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-k.w/2, -k.h/4); ctx.lineTo(-k.w/2 - 22, -k.h/2 - 14);
+  ctx.moveTo(k.w/2, -k.h/4); ctx.lineTo(k.w/2 + 22, -k.h/2 - 14); ctx.stroke();
+  ctx.restore();
+}
+function drawBall() {
+  ctx.save();
+  ctx.translate(ball.x, ball.y);
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(0, 0, ball.r, 0, 2*Math.PI); ctx.fill();
+  ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Fünfeck-Muster (vereinfacht)
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.arc(0, 0, ball.r * 0.4, 0, 2*Math.PI); ctx.fill();
+  ctx.restore();
+}
+function drawAim() {
+  if (state !== 'aiming') return;
+  // Ziellinie
+  ctx.strokeStyle = 'rgba(255,225,107,.7)'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
+  ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(aim.x, aim.y); ctx.stroke();
+  ctx.setLineDash([]);
+  // Fadenkreuz
+  ctx.strokeStyle = '#ffe16b'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(aim.x, aim.y, 14, 0, 2*Math.PI); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(aim.x - 20, aim.y); ctx.lineTo(aim.x + 20, aim.y);
+  ctx.moveTo(aim.x, aim.y - 20); ctx.lineTo(aim.x, aim.y + 20); ctx.stroke();
+}
+function drawResult() {
+  if (resultTimer <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, resultTimer / 30);
+  ctx.fillStyle = resultColor;
+  ctx.font = 'bold 46px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = 5;
+  ctx.strokeText(resultText, W/2, H/2);
+  ctx.fillText(resultText, W/2, H/2);
+  ctx.restore();
+}
+
+function loop() {
+  update();
+  ctx.clearRect(0, 0, W, H);
+  drawField();
+  drawGoal();
+  drawKeeper();
+  drawAim();
+  drawBall();
+  drawResult();
+  requestAnimationFrame(loop);
+}
+
+updateUI();
+resetShot();
+loop();
+</script>
+</body>
+</html>
