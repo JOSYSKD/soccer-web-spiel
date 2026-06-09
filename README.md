@@ -1,16 +1,16 @@
-# ⚽ Soccer Web Spiel
+# ⚽ Elfmeter WM 2026 — Penalty Shootout
 
-Ein kleines Elfmeterschießen-Spiel für den Browser – komplett in HTML, CSS und JavaScript.
+Ein 3D-Elfmeterschießen für den Browser – komplett in HTML, CSS und JavaScript.
+Wähle dein Land und spiele dich im Turnier bis ins Finale.
 
 ## Spielen
 
 Einfach die Datei **`index.html`** im Browser öffnen.
 
-- **Maus bewegen** → zielen
-- **Klicken** (oder antippen) → schießen
-- Triff ins Tor, am Torwart vorbei!
-
-Das Spiel zählt deine Tore, Schüsse und deine beste Trefferserie.
+- **Land wählen** → tritt für deine Nationalmannschaft an
+- **Schießen**: klicken/halten und in Richtung Tor zielen (am Desktop mit der Maus, am Handy per Swipe)
+- **Halten**: du schießt und hältst abwechselnd – timing entscheidet
+- Gewinne das Elfmeterschießen und ziehe eine Runde weiter
 
 ## Online spielbar machen (GitHub Pages)
 
@@ -19,6 +19,7 @@ Browser spielbar gemacht werden – dann gibt es einen Link zum Teilen.
 
 ## Technik
 
-- Reines Vanilla JavaScript, keine Bibliotheken
-- Gezeichnet mit dem HTML5 `<canvas>`-Element
-- Läuft auf Desktop und Handy (Touch wird unterstützt)
+- Vanilla JavaScript, 3D-Grafik mit [Three.js](https://threejs.org/)
+- Länder-Trikots und -Flaggen prozedural in Landesfarben generiert
+- Sound-Feedback bei Klicks und Aktionen
+- Läuft auf Desktop und Handy (Touch/Swipe wird unterstützt)
