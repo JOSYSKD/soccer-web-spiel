@@ -604,22 +604,12 @@ function makeHangJerseyTex(num){
 }
 function buildLockerRoom(){
   menuScene=new THREE.Scene();
-  // Stadion-Foto als Menü-Hintergrund (Ronaldo steht davor)
+  // Nur das Stadion-Foto als Menü-Hintergrund – kein Spieler, kein Boden
   const stadiumTex=new THREE.TextureLoader().load('assets/stadium.jpg');
   stadiumTex.colorSpace=THREE.SRGBColorSpace;
   menuScene.background=stadiumTex;
-  menuScene.add(new THREE.HemisphereLight(0xbcd3ff,0x223018,0.9));
-  const dir=new THREE.DirectionalLight(0xfff2dc,1.4); dir.position.set(3,7,5); dir.castShadow=true;
-  dir.shadow.mapSize.set(1024,1024); menuScene.add(dir);
-  [-3,0,3].forEach(px=>{ const pl=new THREE.PointLight(0xfff0d0,10,16,2); pl.position.set(px,5.2,-2); menuScene.add(pl); });
-  // Rasen-Boden, damit Ronaldo im Stadion steht und einen Schatten wirft
-  const floor=new THREE.Mesh(new THREE.PlaneGeometry(60,60), new THREE.MeshStandardMaterial({color:0x2e7d32,roughness:.95}));
-  floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; menuScene.add(floor);
-  // Ronaldo im Portugal-Trikot
-  const PT=TEAMS.find(t=>t.name==='Portugal');
-  menuRonaldo=makePlayer({kit:0xc1121f,trim:0x0b3d2e,skin:SKINS[0],name:'CR7 · RONALDO',kitMap:kitTexForTeam(PT)});
-  menuRonaldo.position.set(0,0,-1.3); menuScene.add(menuRonaldo);
-  // Kamera
+  menuRonaldo=null;
+  // Kamera (für die Render-Schleife)
   menuCamera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,100);
   menuCamera.position.set(0,1.6,3.2); menuCamera.lookAt(0,1.25,-3.5);
 }
