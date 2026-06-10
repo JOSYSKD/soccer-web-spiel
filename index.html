@@ -604,33 +604,17 @@ function makeHangJerseyTex(num){
 }
 function buildLockerRoom(){
   menuScene=new THREE.Scene();
-  menuScene.background=new THREE.Color(0x12151c);
-  menuScene.fog=new THREE.Fog(0x12151c, 8, 26);
-  menuScene.add(new THREE.HemisphereLight(0xb6c6e6,0x20242c,0.7));
-  const dir=new THREE.DirectionalLight(0xfff2dc,1.25); dir.position.set(3,7,5); dir.castShadow=true;
+  // Stadion-Foto als Menü-Hintergrund (Ronaldo steht davor)
+  const stadiumTex=new THREE.TextureLoader().load('assets/stadium.jpg');
+  stadiumTex.colorSpace=THREE.SRGBColorSpace;
+  menuScene.background=stadiumTex;
+  menuScene.add(new THREE.HemisphereLight(0xbcd3ff,0x223018,0.9));
+  const dir=new THREE.DirectionalLight(0xfff2dc,1.4); dir.position.set(3,7,5); dir.castShadow=true;
   dir.shadow.mapSize.set(1024,1024); menuScene.add(dir);
-  [-3,0,3].forEach(px=>{ const pl=new THREE.PointLight(0xfff0d0,16,16,2); pl.position.set(px,5.2,-2); menuScene.add(pl); });
-  // Boden + Wände
-  const floor=new THREE.Mesh(new THREE.PlaneGeometry(26,26), new THREE.MeshStandardMaterial({color:0x2a2e36,roughness:.9}));
+  [-3,0,3].forEach(px=>{ const pl=new THREE.PointLight(0xfff0d0,10,16,2); pl.position.set(px,5.2,-2); menuScene.add(pl); });
+  // Rasen-Boden, damit Ronaldo im Stadion steht und einen Schatten wirft
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(60,60), new THREE.MeshStandardMaterial({color:0x2e7d32,roughness:.95}));
   floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; menuScene.add(floor);
-  const wallMat=new THREE.MeshStandardMaterial({color:0x363b45,roughness:.95});
-  const back=new THREE.Mesh(new THREE.PlaneGeometry(26,9),wallMat); back.position.set(0,4.5,-5); menuScene.add(back);
-  const lwall=new THREE.Mesh(new THREE.PlaneGeometry(22,9),wallMat); lwall.rotation.y=Math.PI/2; lwall.position.set(-9,4.5,6); menuScene.add(lwall);
-  const rwall=new THREE.Mesh(new THREE.PlaneGeometry(22,9),wallMat); rwall.rotation.y=-Math.PI/2; rwall.position.set(9,4.5,6); menuScene.add(rwall);
-  // Spinde mit hängenden Portugal-Trikots
-  const woodMat=new THREE.MeshStandardMaterial({color:0x4a3526,roughness:.8});
-  const insMat=new THREE.MeshStandardMaterial({color:0x171008,roughness:1});
-  const nums=['7','10','11','8','17','21','23'];
-  for(let i=-3;i<=3;i++){ const lx=i*1.55;
-    const cab=new THREE.Mesh(new THREE.BoxGeometry(1.45,3.1,0.85),woodMat); cab.position.set(lx,2.3,-4.55); cab.castShadow=true; cab.receiveShadow=true; menuScene.add(cab);
-    const ins=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.7,0.5),insMat); ins.position.set(lx,2.3,-4.36); menuScene.add(ins);
-    const jm=new THREE.MeshStandardMaterial({map:makeHangJerseyTex(nums[i+3]),transparent:true,alphaTest:0.5,roughness:.7,side:THREE.DoubleSide});
-    const jp=new THREE.Mesh(new THREE.PlaneGeometry(1.0,1.3),jm); jp.position.set(lx,2.65,-4.2); menuScene.add(jp);
-  }
-  // Bank
-  const bench=new THREE.Mesh(new THREE.BoxGeometry(9,0.22,0.6),new THREE.MeshStandardMaterial({color:0x5a3b22,roughness:.8}));
-  bench.position.set(0,0.55,-2.6); bench.castShadow=true; menuScene.add(bench);
-  [-4,4].forEach(px=>{ const leg=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.55,0.5),new THREE.MeshStandardMaterial({color:0x3f2817})); leg.position.set(px,0.27,-2.6); menuScene.add(leg); });
   // Ronaldo im Portugal-Trikot
   const PT=TEAMS.find(t=>t.name==='Portugal');
   menuRonaldo=makePlayer({kit:0xc1121f,trim:0x0b3d2e,skin:SKINS[0],name:'CR7 · RONALDO',kitMap:kitTexForTeam(PT)});
