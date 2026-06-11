@@ -605,7 +605,7 @@ function makeHangJerseyTex(num){
 function buildLockerRoom(){
   menuScene=new THREE.Scene();
   // Nur das Stadion-Foto als Menü-Hintergrund – kein Spieler, kein Boden
-  const stadiumTex=new THREE.TextureLoader().load('assets/stadium.jpg');
+  const stadiumTex=new THREE.TextureLoader().load('assets/stadium.jpg?v=2');
   stadiumTex.colorSpace=THREE.SRGBColorSpace;
   menuScene.background=stadiumTex;
   menuRonaldo=null;
